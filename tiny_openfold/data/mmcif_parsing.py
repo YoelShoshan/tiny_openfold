@@ -28,7 +28,7 @@ import numpy as np
 
 from tiny_openfold.data.errors import MultipleChainsError
 import tiny_openfold.np.residue_constants as residue_constants
-
+from collections import Counter
 
 # Type aliases:
 ChainId = str
@@ -101,7 +101,8 @@ class MmcifObject:
     seqres_to_structure: Mapping[ChainId, Mapping[int, ResidueAtPosition]]
     raw_string: Any
     pdb_assigned_chain_id_to_author_assigned_chain_id: Mapping[str,str]    
-    author_assigned_chain_id_to_pdb_assigned_chain_id: Mapping[str,str]    
+    author_assigned_chain_id_to_pdb_assigned_chain_id: Mapping[str,str] 
+    info: Dict  #information and statistics, useful for filtering (for example, if you want to drop cases with DNA/RNA sequences)   
 
 @dataclasses.dataclass(frozen=True)
 class ParsingResult:
@@ -214,7 +215,7 @@ def parse(
 
         # Determine the protein chains, and their start numbers according to the
         # internal mmCIF numbering scheme (likely but not guaranteed to be 1).
-        valid_chains = _get_protein_chains(parsed_info=parsed_info, 
+        valid_chains, chains_info = _get_protein_chains(parsed_info=parsed_info, 
             handle_residue_id_duplication=handle_residue_id_duplication)
         
         if not valid_chains:
@@ -315,6 +316,7 @@ def parse(
             raw_string=parsed_info,
             pdb_assigned_chain_id_to_author_assigned_chain_id=mmcif_to_author_chain_id,   
             author_assigned_chain_id_to_pdb_assigned_chain_id=author_assigned_chain_id_to_pdb_assigned_chain_id,
+            info = chains_info,
         )
         ans = ParsingResult(mmcif_object=mmcif_object, errors=errors)
         if not also_return_mmcif_dict:
@@ -438,6 +440,7 @@ def _handle_residue_id_duplication(
 
         processed.append(entry)
     return processed
+
 def _get_protein_chains(
     *, parsed_info: Mapping[str, Any],
     handle_residue_id_duplication:bool = False,
@@ -489,19 +492,34 @@ def _get_protein_chains(
 
     # Identify and return the valid protein chains.
     valid_chains = {}
+    info = {}
+
+    _chem_comp_type_total_stats_counter = Counter()
+    
+    rna_or_dna_only_sequences_count = 0
     for entity_id, seq_info in polymers.items():
         chain_ids = entity_to_mmcif_chains[entity_id]
 
         # Reject polymers without any peptide-like components, such as DNA/RNA.
-        if any(
-            [
-                "peptide" in chem_comps[monomer.id]["_chem_comp.type"]
-                for monomer in seq_info
-            ]
-        ):
+
+        components = [ chem_comps[monomer.id]["_chem_comp.type"].lower() for monomer in seq_info ]
+
+        for comp in components:
+            _chem_comp_type_total_stats_counter[comp] += 1
+
+        peptide_found = any(['peptide' in x for x in components])
+        rna_or_dna_only_sequences_count += any([ 
+           (('rna' in x) or ('dna' in x))
+           for x in components])
+
+        if peptide_found:
             for chain_id in chain_ids:
                 valid_chains[chain_id] = seq_info
-    return valid_chains
+
+    info['_chem_comp_type_total_stats_counter'] = _chem_comp_type_total_stats_counter
+    info['rna_or_dna_only_sequences_count'] = rna_or_dna_only_sequences_count
+        
+    return valid_chains, info
 
 
 def _is_set(data: str) -> bool:

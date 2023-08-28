@@ -127,6 +127,7 @@ def make_sequence_features(
         [description.encode("utf-8")], dtype=object
     )
     features["residue_index"] = np.array(range(num_res), dtype=np.int32)
+    features['chain_index'] = np.full_like(features["residue_index"], fill_value=0)
     features["seq_length"] = np.array([num_res] * num_res, dtype=np.int32)
     features["sequence"] = np.array(
         [sequence.encode("utf-8")], dtype=object
