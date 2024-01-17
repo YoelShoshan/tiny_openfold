@@ -22,7 +22,7 @@ from importlib import resources
 
 import numpy as np
 import tree
-
+import os
 # Internal import (35fd).
 
 
@@ -453,14 +453,20 @@ def load_stereo_chemical_props() -> Tuple[
       residue_bond_angles: dict that maps resname --> list of BondAngle tuples
     """
     # TODO: this file should be downloaded in a setup script
-    stereo_chemical_props = resources.read_text("openfold.resources", "stereo_chemical_props.txt")
+    ###stereo_chemical_props = resources.read_text("openfold.resources", "stereo_chemical_props.txt")
+    ###wget --no-check-certificate  https://git.scicore.unibas.ch/schwede/openstructure/-/raw/7102c63615b64735c4941278d92b554ec94415f8/modules/mol/alg/src/stereo_chemical_props.txt
+    with open(os.path.join(
+        os.path.dirname(__file__),
+        '../resources/stereo_chemical_props.txt'
+        ), 'r') as f:
+        stereo_chemical_props = f.read()
 
     lines_iter = iter(stereo_chemical_props.splitlines())
     # Load bond lengths.
     residue_bonds = {}
     next(lines_iter)  # Skip header line.
     for line in lines_iter:
-        if line.strip() == "-":
+        if line.strip() == "-": #end of section
             break
         bond, resname, length, stddev = line.split()
         atom1, atom2 = bond.split("-")
@@ -476,7 +482,7 @@ def load_stereo_chemical_props() -> Tuple[
     next(lines_iter)  # Skip empty line.
     next(lines_iter)  # Skip header line.
     for line in lines_iter:
-        if line.strip() == "-":
+        if line.strip() == "-": #end of section
             break
         bond, resname, angle_degree, stddev_degree = line.split()
         atom1, atom2, atom3 = bond.split("-")
