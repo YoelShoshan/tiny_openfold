@@ -20,12 +20,12 @@ import time
 from typing import Collection, Optional, Sequence
 
 from absl import logging
-from openfold.np import (
+from tiny_openfold.np import (
     protein,
     residue_constants,
 )
-import openfold.utils.loss as loss
-from openfold.np.relax import cleanup, utils
+import tiny_openfold.utils.loss as loss
+from tiny_openfold.np.relax import cleanup, utils
 import ml_collections
 import numpy as np
 import openmm

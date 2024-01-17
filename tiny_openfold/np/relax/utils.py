@@ -15,7 +15,7 @@
 
 """Utils for minimization."""
 import io
-from openfold.np import residue_constants
+from tiny_openfold.np import residue_constants
 from Bio import PDB
 import numpy as np
 from openmm import app as openmm_app
