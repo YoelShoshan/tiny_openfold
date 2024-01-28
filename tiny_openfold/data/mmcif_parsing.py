@@ -530,7 +530,8 @@ def _is_set(data: str) -> bool:
 def get_atom_coords(
     mmcif_object: MmcifObject, 
     chain_id: str, 
-    _zero_center_positions: bool = False
+    _zero_center_positions: bool = False,
+    return_bfactors: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray]:
     # Locate the right chain
     chains = list(mmcif_object.structure.get_chains())
@@ -549,9 +550,15 @@ def get_atom_coords(
     all_atom_mask = np.zeros(
         [num_res, residue_constants.atom_type_num], dtype=np.float32
     )
+
+    if return_bfactors:
+        all_atom_bfactors = np.full( (num_res, residue_constants.atom_type_num), fill_value=float('inf'), dtype=np.float32)
+
     for res_index in range(num_res):
         pos = np.zeros([residue_constants.atom_type_num, 3], dtype=np.float32)
         mask = np.zeros([residue_constants.atom_type_num], dtype=np.float32)
+        if return_bfactors:
+            bfactors = np.zeros([residue_constants.atom_type_num], dtype=np.float32)
         res_at_position = mmcif_object.seqres_to_structure[chain_id][res_index]
         if not res_at_position.is_missing:
             res = chain[
@@ -567,17 +574,26 @@ def get_atom_coords(
                 if atom_name in residue_constants.atom_order.keys():
                     pos[residue_constants.atom_order[atom_name]] = [x, y, z]
                     mask[residue_constants.atom_order[atom_name]] = 1.0
+                    if return_bfactors:
+                        bfactors[residue_constants.atom_order[atom_name]] = atom.get_bfactor()
                 elif atom_name.upper() == "SE" and res.get_resname() == "MSE":
                     # Put the coords of the selenium atom in the sulphur column
                     pos[residue_constants.atom_order["SD"]] = [x, y, z]
                     mask[residue_constants.atom_order["SD"]] = 1.0
-
+                    if return_bfactors:
+                        bfactors[residue_constants.atom_order["SD"]] = atom.get_bfactor()                
+                
         all_atom_positions[res_index] = pos
         all_atom_mask[res_index] = mask
+        if return_bfactors:
+            all_atom_bfactors[res_index] = bfactors
 
     if _zero_center_positions:
         binary_mask = all_atom_mask.astype(bool)
         translation_vec = all_atom_positions[binary_mask].mean(axis=0)
         all_atom_positions[binary_mask] -= translation_vec
+
+    if return_bfactors:
+        return all_atom_positions, all_atom_mask, all_atom_bfactors
 
     return all_atom_positions, all_atom_mask
