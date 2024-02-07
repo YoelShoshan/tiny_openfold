@@ -41,7 +41,7 @@ def _superimpose_single(reference, coords):
     return coords.new_tensor(superimposed), coords.new_tensor(rmsd)
 
 
-def superimpose(reference, coords, mask, verbose:bool = True):
+def superimpose(reference, coords, mask, verbose:bool = False):
     """
         Superimposes coordinates onto a reference by minimizing RMSD using SVD.
 
