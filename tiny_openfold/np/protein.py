@@ -36,7 +36,7 @@ FeatureDict = Mapping[str, np.ndarray]
 ModelOutput = Mapping[str, Any]  # Is a nested dict.
 PICO_TO_ANGSTROM = 0.01
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=False)
 class Protein:
     """Protein structure representation."""
 
@@ -109,9 +109,11 @@ def from_pdb_string(
     chain_ids = []
     b_factors = []
 
+    found_any = False
     for chain in model:
         if(chain_id is not None and chain.id != chain_id):
             continue
+        found_any = True
         for res in chain:
             if res.id[2] != " ":
                 raise ValueError(
@@ -142,6 +144,9 @@ def from_pdb_string(
             residue_index.append(res.id[1])
             chain_ids.append(chain.id)
             b_factors.append(res_b_factors)
+
+    if not found_any:
+        raise Exception(f'Could not find any chains! For chain_id={str(chain_id)}')
 
     parents = None
     parents_chain_index = None
