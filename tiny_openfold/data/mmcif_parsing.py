@@ -363,7 +363,8 @@ def _get_header(parsed_info: MmCIFDict) -> PdbHeader:
         header["release_date"] = get_release_date(parsed_info)
     else:
         logging.warning(
-            "Could not determine release_date: %s", parsed_info["_entry.id"]
+            #"Could not determine release_date: %s", parsed_info["_entry.id"]
+            "Could not determine release_date"
         )
 
     header["resolution"] = 0.00
@@ -558,7 +559,7 @@ def get_atom_coords(
         pos = np.zeros([residue_constants.atom_type_num, 3], dtype=np.float32)
         mask = np.zeros([residue_constants.atom_type_num], dtype=np.float32)
         if return_bfactors:
-            bfactors = np.zeros([residue_constants.atom_type_num], dtype=np.float32)
+            bfactors = np.full([residue_constants.atom_type_num], fill_value=float('inf'), dtype=np.float32)
         res_at_position = mmcif_object.seqres_to_structure[chain_id][res_index]
         if not res_at_position.is_missing:
             res = chain[

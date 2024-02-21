@@ -157,6 +157,7 @@ def make_mmcif_features(
     )
     mmcif_feats["all_atom_positions"] = all_atom_positions
     mmcif_feats["all_atom_mask"] = all_atom_mask
+    mmcif_feats["all_atom_bfactors"] = all_atom_bfactors
 
     mmcif_feats["resolution"] = np.array(
         [mmcif_object.header["resolution"]], dtype=np.float32
