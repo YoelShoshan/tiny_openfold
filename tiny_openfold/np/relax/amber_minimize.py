@@ -483,6 +483,7 @@ def run_pipeline(
     max_attempts: int = 100,
     checks: bool = True,
     exclude_residues: Optional[Sequence[int]] = None,
+    verbose:bool = True,
 ):
     """Run iterative amber relax.
 
@@ -522,6 +523,8 @@ def run_pipeline(
     iteration = 0
 
     while violations > 0 and iteration < max_outer_iterations:
+        if verbose:
+            print('minimization step ', iteration)
         ret = _run_one_iteration(
             pdb_string=pdb_string,
             exclude_residues=exclude_residues,

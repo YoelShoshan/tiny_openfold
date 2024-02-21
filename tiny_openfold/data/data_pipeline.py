@@ -152,11 +152,12 @@ def make_mmcif_features(
         )
     )
 
-    all_atom_positions, all_atom_mask = mmcif_parsing.get_atom_coords(
-        mmcif_object=mmcif_object, chain_id=chain_id
+    all_atom_positions, all_atom_mask, all_atom_bfactors = mmcif_parsing.get_atom_coords(
+        mmcif_object=mmcif_object, chain_id=chain_id, return_bfactors=True
     )
     mmcif_feats["all_atom_positions"] = all_atom_positions
     mmcif_feats["all_atom_mask"] = all_atom_mask
+    mmcif_feats["all_atom_bfactors"] = all_atom_bfactors
 
     mmcif_feats["resolution"] = np.array(
         [mmcif_object.header["resolution"]], dtype=np.float32
