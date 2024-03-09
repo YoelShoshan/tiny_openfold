@@ -28,7 +28,7 @@ from tiny_openfold.utils.tensor_utils import (
     tensor_tree_map,
     batched_gather,
 )
-
+from functools import lru_cache
 
 MSA_FEATURE_NAMES = [
     "msa",
@@ -588,7 +588,9 @@ def crop_templates(protein, max_templates):
     return protein
 
 
-def make_atom14_masks(protein):
+
+@lru_cache(maxsize=None)
+def get_atom_37_to_14_conversion(device):
     """Construct denser atom positions (14 dimensions instead of 37)."""
     restype_atom14_to_atom37 = []
     restype_atom37_to_atom14 = []
@@ -619,18 +621,48 @@ def make_atom14_masks(protein):
     restype_atom14_to_atom37 = torch.tensor(
         restype_atom14_to_atom37,
         dtype=torch.int32,
-        device=protein["aatype"].device,
+        device=device,
     )
     restype_atom37_to_atom14 = torch.tensor(
         restype_atom37_to_atom14,
         dtype=torch.int32,
-        device=protein["aatype"].device,
+        device=device,
     )
     restype_atom14_mask = torch.tensor(
         restype_atom14_mask,
         dtype=torch.float32,
-        device=protein["aatype"].device,
+        device=device,
     )
+
+    return restype_atom37_to_atom14, restype_atom14_to_atom37, restype_atom14_mask
+
+def make_atom14_bfactors(protein):
+    restype_atom37_to_atom14, restype_atom14_to_atom37, restype_atom14_mask = get_atom_37_to_14_conversion(device=protein["aatype"].device)
+    protein_aatype = protein['aatype'].to(torch.long)
+    residx_atom14_to_atom37 = restype_atom14_to_atom37[protein_aatype]
+    #ans = protein['all_atom_bfactors'][residx_restype_atom37_to_atom14]
+
+    atom14_bfactors = torch.gather(protein['all_atom_bfactors'], 1, residx_atom14_to_atom37.long())
+
+    ### atom14_bfactors[10]
+    ### tensor([68.8000, 69.2400, 68.1000, 67.7600, 71.0200, 71.8800, 72.3100, 71.9500,
+    ###        68.8000, 68.8000, 68.8000, 68.8000, 68.8000, 68.8000])
+    ### protein['all_atom_bfactors'][10]
+    ### residx_atom14_to_atom37[10]
+    ### tensor([ 0,  1,  2,  4,  3,  5, 16, 15,  0,  0,  0,  0,  0,  0],
+    ### dtype=torch.int32)
+    ###
+    ### since indices after the "end" of existing residues point to 0, let's clear them (the atom14 exist will be False anyway, but for the sake of keeping this clea)
+    residx_atom14_exists = restype_atom14_mask[protein_aatype]
+    atom14_bfactors = torch.where(residx_atom14_exists.bool(), atom14_bfactors, float('inf'))
+
+    protein['atom14_bfactors'] = atom14_bfactors
+    return protein
+
+
+def make_atom14_masks(protein):
+    restype_atom37_to_atom14, restype_atom14_to_atom37, restype_atom14_mask = get_atom_37_to_14_conversion(device=protein["aatype"].device)    
+    
     protein_aatype = protein['aatype'].to(torch.long)
 
     # create the mapping for (residx, atom14) --> atom37, i.e. an array
