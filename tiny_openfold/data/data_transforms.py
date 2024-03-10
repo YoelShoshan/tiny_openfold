@@ -589,55 +589,10 @@ def crop_templates(protein, max_templates):
 
 
 
-@lru_cache(maxsize=None)
-def get_atom_37_to_14_conversion(device):
-    """Construct denser atom positions (14 dimensions instead of 37)."""
-    restype_atom14_to_atom37 = []
-    restype_atom37_to_atom14 = []
-    restype_atom14_mask = []
 
-    for rt in rc.restypes:
-        atom_names = rc.restype_name_to_atom14_names[rc.restype_1to3[rt]]
-        restype_atom14_to_atom37.append(
-            [(rc.atom_order[name] if name else 0) for name in atom_names]
-        )
-        atom_name_to_idx14 = {name: i for i, name in enumerate(atom_names)}
-        restype_atom37_to_atom14.append(
-            [
-                (atom_name_to_idx14[name] if name in atom_name_to_idx14 else 0)
-                for name in rc.atom_types
-            ]
-        )
-
-        restype_atom14_mask.append(
-            [(1.0 if name else 0.0) for name in atom_names]
-        )
-
-    # Add dummy mapping for restype 'UNK'
-    restype_atom14_to_atom37.append([0] * 14)
-    restype_atom37_to_atom14.append([0] * 37)
-    restype_atom14_mask.append([0.0] * 14)
-
-    restype_atom14_to_atom37 = torch.tensor(
-        restype_atom14_to_atom37,
-        dtype=torch.int32,
-        device=device,
-    )
-    restype_atom37_to_atom14 = torch.tensor(
-        restype_atom37_to_atom14,
-        dtype=torch.int32,
-        device=device,
-    )
-    restype_atom14_mask = torch.tensor(
-        restype_atom14_mask,
-        dtype=torch.float32,
-        device=device,
-    )
-
-    return restype_atom37_to_atom14, restype_atom14_to_atom37, restype_atom14_mask
 
 def make_atom14_bfactors(protein):
-    restype_atom37_to_atom14, restype_atom14_to_atom37, restype_atom14_mask = get_atom_37_to_14_conversion(device=protein["aatype"].device)
+    restype_atom37_to_atom14, restype_atom14_to_atom37, restype_atom14_mask = rc.get_atom_37_to_14_conversion(device=protein["aatype"].device)
     protein_aatype = protein['aatype'].to(torch.long)
     residx_atom14_to_atom37 = restype_atom14_to_atom37[protein_aatype]
     #ans = protein['all_atom_bfactors'][residx_restype_atom37_to_atom14]
@@ -661,7 +616,7 @@ def make_atom14_bfactors(protein):
 
 
 def make_atom14_masks(protein):
-    restype_atom37_to_atom14, restype_atom14_to_atom37, restype_atom14_mask = get_atom_37_to_14_conversion(device=protein["aatype"].device)    
+    restype_atom37_to_atom14, restype_atom14_to_atom37, restype_atom14_mask = rc.get_atom_37_to_14_conversion(device=protein["aatype"].device)    
     
     protein_aatype = protein['aatype'].to(torch.long)
 
