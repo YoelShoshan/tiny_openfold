@@ -219,9 +219,14 @@ def parse(
             handle_residue_id_duplication=handle_residue_id_duplication)
         
         if not valid_chains:
-            return ParsingResult(
+            ans = ParsingResult(
                 None, {(file_id, ""): "No protein chains found in this file."}
             )
+
+            if not also_return_mmcif_dict:
+                return ans
+            else:
+                return ans, parser._mmcif_dict
         seq_start_num = {
             chain_id: min([monomer.num for monomer in seq])
             for chain_id, seq in valid_chains.items()
