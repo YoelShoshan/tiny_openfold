@@ -80,12 +80,23 @@ def superimpose(
         Returns:
             A tuple of [*, N, 3] superimposed coords and [*] final RMSDs.
     """
-    if verbose:
-        print(f'superimpose::debug:: reference {reference.shape} coords {coords.shape} mask {mask.shape}')
+    #if verbose:
+    #    print(f'superimpose::debug:: reference {reference.shape} coords {coords.shape} mask {mask.shape}')
     if len(reference.shape)>2 and reference.shape[-2] in [14,15,37]:
         print(f'superimpose warning, you are using shape {reference.shape} which might mean you did not flatten the residues and superimposing will happen separately per residue which is likely not your intention')
 
+    assert not mask.isnan().any()
+
     assert return_type in ['numpy', 'torch']
+    assert len(reference.shape) == 2  , "for now blocking the option of running it on batches to avoid misues as residues"
+
+    #print(f'{reference.shape=}')
+    #print(f'{coords.shape=}')
+    #print(f'{mask.shape=}')
+
+    assert reference.shape == coords.shape
+    assert reference.shape[0] == mask.shape[0]
+    assert reference.shape[1] == 3
 
     reference = _to_torch_tensor(reference)
     coords = _to_torch_tensor(coords)
@@ -113,14 +124,23 @@ def superimpose(
             c_unmasked_coords
         )
 
-        # This is very inelegant, but idk how else to invert the masking
-        # procedure.
-        count = 0
-        superimposed_full_size = torch.zeros_like(r)
-        for i, unmasked in enumerate(m):
-            if(unmasked):
-                superimposed_full_size[i] = superimposed[count]
-                count += 1
+        ### take from the active atoms back to the full        
+        superimposed_full_size = torch.zeros_like(r)        
+        valid_indices = m.nonzero()
+        assert valid_indices.shape[1] == 1
+        valid_indices = valid_indices[:,0]                        
+        superimposed_full_size[valid_indices] = superimposed
+
+        # if True: #for debugging/comparison
+        #     count = 0        
+        #     superimposed_full_size_debug = torch.zeros_like(r) 
+        #     #print(f'{superimposed_full_size.shape=}')
+        #     for i, unmasked in enumerate(m):
+        #         if(unmasked):
+        #             #assert i<superimposed_full_size.shape[0]
+        #             superimposed_full_size_debug[i] = superimposed[count]
+        #             count += 1
+
 
         superimposed_list.append(superimposed_full_size)
         rmsds.append(rmsd)
