@@ -85,7 +85,10 @@ def superimpose(
     if len(reference.shape)>2 and reference.shape[-2] in [14,15,37]:
         print(f'superimpose warning, you are using shape {reference.shape} which might mean you did not flatten the residues and superimposing will happen separately per residue which is likely not your intention')
 
-    assert not mask.isnan().any()
+    if isinstance(mask, np.ndarray):
+        assert not np.isnan(mask).any()
+    else:
+        assert not mask.isnan().any()
 
     assert return_type in ['numpy', 'torch']
     assert len(reference.shape) == 2  , "for now blocking the option of running it on batches to avoid misues as residues"

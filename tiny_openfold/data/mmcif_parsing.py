@@ -558,13 +558,15 @@ def get_atom_coords(
     )
 
     if return_bfactors:
-        all_atom_bfactors = np.full( (num_res, residue_constants.atom_type_num), fill_value=float('inf'), dtype=np.float32)
+        all_atom_bfactors = np.full( (num_res, residue_constants.atom_type_num), fill_value=-999.0, dtype=np.float32)
+        #all_atom_bfactors = np.full( (num_res, residue_constants.atom_type_num), fill_value=float('inf'), dtype=np.float32)
 
     for res_index in range(num_res):
         pos = np.zeros([residue_constants.atom_type_num, 3], dtype=np.float32)
         mask = np.zeros([residue_constants.atom_type_num], dtype=np.float32)
         if return_bfactors:
-            bfactors = np.full([residue_constants.atom_type_num], fill_value=float('inf'), dtype=np.float32)
+            bfactors = np.full([residue_constants.atom_type_num], fill_value=-999.0, dtype=np.float32)
+            #bfactors = np.full([residue_constants.atom_type_num], fill_value=float('inf'), dtype=np.float32)
         res_at_position = mmcif_object.seqres_to_structure[chain_id][res_index]
         if not res_at_position.is_missing:
             res = chain[
